@@ -1,0 +1,2 @@
+# Percentage that a storage pool in RHEV can fill before alerting
+THRESHOLD=90
