@@ -1,0 +1,19 @@
+# This file should be in placed in users home directory
+
+[ovirt-manager-test.example.com]
+username: admin@internal
+password: mytestpassword
+url: https://ovirt-manager-test.example.com
+cafile: /home/rgroten/ovirt-manager-test.crt
+
+[ovirt-manager-dev.example.com]
+username: admin@internal
+password: mydevpassword
+url: https://ovirt-manager-dev.example.com
+cafile: /path/to/cacert/ovirt-manager-dev.crt
+
+[ovirt-manager-prod.example.com]
+username: admin@internal
+password: myprodpassword
+url: https://ovirt-manager-prod.example.com
+cafile: /path/to/cacert/ovirt-manager-prod.crt
