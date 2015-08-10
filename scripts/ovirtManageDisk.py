@@ -91,7 +91,7 @@ def _attach(vm, disk, activate):
         print("Disk " + disk.get_alias() + " is already attached")
         # Disk is already attached so lets activate it
         if activate:
-            _activate(disk)
+            _activate(vmDisk)
     else:
         print("Attaching " + disk.get_alias() + " to " + vm.get_name())
         vmDisk = vm.disks.add(params.Disk(id = disk.id, active = activate))
