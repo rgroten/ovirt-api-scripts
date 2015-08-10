@@ -1,14 +1,14 @@
 #!/usr/bin/python
 # ---------------------------------                                             
 #   Author: Ryan Groten
+# ---------------------------------
 #   Description:
 #           Tool for managing disks for ovirt/RHEV from the command line
 #           Provides the ability to create, attach/detach, delete both internal
 #           (pool) disks or direct attach (lun) disks to VMs
 #           Run without args for usage
 #           Requires ovirtFunctions and ovirtsdk
-# ---------------------------------                                             
-
+# ---------------------------------
 
 from ovirtsdk.api import API
 from ovirtsdk.xml import params
@@ -39,77 +39,111 @@ class UsageException(Exception):
         print("	-d: Name of disk")
         print("	-s: Size of disk in GB")
         print("	-l: LUN id")
+        print("	-w: no-activate/no-detach. When attaching disk, don't activate it. When deactivating, don't detach.")
         print(message)
         sys.exit(2)
 
 
-def activate(disk):
-    """Activate specified disk"""
+def _activate(disk):
+    """
+    Activate specified disk
+    Parameters:
+        disk - ovirtsdk.infrastructure.brokers.VMDisk object to activate
+    """
     try:
-        print("Activating disk: " + disk.alias)
-        disk.activate()
+        if disk.get_active():
+            print("Disk is already active")
+        else:
+            print("Activating disk: " + disk.alias)
+            disk.activate()
     except Exception as e:
         print ("Error while activating disk: " + str(e))
         raise
 
 
-def deactivate(disk):
-    """Deactivate specified disk - function not used currently"""
+def _deactivate(disk):
+    """
+    Deactivate specified disk
+    Parameters:
+        disk - ovirtsdk.infrastructure.brokers.VMDisk object to deactivate
+    """
     try:
-        print("Deactivating disk: " + disk.alias)
-        disk.deactivate()
+        if disk.get_active():
+            print("Deactivating disk: " + disk.get_alias())
+            disk.deactivate()
+        else:
+            print("Disk is already deactivated")
     except Exception as e:
         print ("Error while deactivating disk: " + str(e))
         raise
-    return return_code
 
 
-def attachDisk(vm_name, disk_name):
-    """Attach disk_name to vm_name then activate it"""
+def _attach(vm, disk):
+    """
+    Attach specified disk to VM
+    Parameters:
+        disk - ovirtsdk.infrastructure.brokers.Disk object to attach
+        vm - ovirtsdk.infrastructure.brokers.VM object to attach disk to
+    """
+    vmDisk = vm.disks.get(id=disk.id)
+    # Check if disk is already attached to the VM
+    if vmDisk:
+        print("Disk " + disk.get_alias() + " is already attached")
+    else:
+        print("Attaching " + disk.get_alias() + " to " + vm.get_name())
+        vmDisk = vm.disks.add(disk)
+    return vmDisk
+
+
+def _detach(vm, disk):
+    """
+    Detach specified disk from VM
+    Parameters:
+        disk - ovirtsdk.infrastructure.brokers.VMDisk object to detach
+        vm - ovirtsdk.infrastructure.brokers.VM object to detach disk from
+    """
+    print("Detaching disk " + disk.get_alias() + " from " + vm.get_name())
+    disk.delete(action=params.Action(detach=True))
+
+
+def attachDisk(vm_name, disk_name, activate=True):
+    """
+    Attach disk_name to vm_name then activate it by default
+    Parameters:
+      vm_name - string of VM to attach disk to
+      disk_name - string of disk to attach to VM
+    """
     try:
         vm = api.vms.get(name=vm_name)
         disks = api.disks.list(alias=disk_name)
         if not disks:
             raise Exception("No disks with name " + disk_name + " found")
         for disk in disks.__iter__():
-            # First check if the disk is already attached to the VM
-            diskObj = vm.disks.get(id=disk.id)
-            if diskObj:
-                print("Disk " + disk.get_alias() + " is already attached")
-            else:
-                print("Will add " + disk.get_alias() + " to " + vm.get_name())
-                diskObj = vm.disks.add(disk)
-
-            # Check if the disk is already active
-            if vm.disks.get(id=disk.id).get_active():
-                print("Disk " + disk.get_alias() + " is already active, skipping activation")
-            else:
-                activate(diskObj)
-            return_code = 0
-            print("Success!")
+            vmDisk = _attach(vm, disk)
+            # Activate disk if requested
+            if activate:
+                _activate(vmDisk)
     except Exception as e:
-        print ("Error while attaching disk: " + str(e))
-        return_code = 1
-    return return_code
+        print ("Error while attaching disk")
+        raise
 
 
-def detachDisk(vm_name, disk_name):
-    """Deactivate and Detach disk_name from vm_name"""
+def detachDisk(vm_name, disk_name, detach=True):
+    """
+    Deactivate disk_name and by default detach it from vm_name
+    """
     try:
         vm = api.vms.get(name=vm_name)
         disks = vm.disks.list(alias=disk_name)
         if not disks:
             raise Exception("No disks with name " + disk_name + " are attached to " + vm_name)
         for disk in disks.__iter__():
-
-            print("Will remove " + disk.get_alias() + " from " + vm.get_name())
-            disk.delete(action=params.Action(detach=True))
-            return_code = 0
-            print("Success!")
+            _deactivate(disk)
+            if detach:
+                _detach(vm, disk)
     except Exception as e:
-        print("Exception while detaching disk: " + str(e))
-        return_code = 1
-    return return_code
+        print("Exception while detaching disk")
+        raise
 
 
 def createDisk(vm_name, disk_name, sizegb):
@@ -228,11 +262,12 @@ def main(argv):
         operation = argv.pop(0)
         ret_code = 0
 
-        opts, args = getopt.getopt(argv, "hyn:d:s:l:")
+        opts, args = getopt.getopt(argv, "hwyn:d:s:l:")
     except getopt.GetoptError as e:
         raise UsageException(str(e))
     try:
         vm_name = None
+        activate = True # Default, activate disk when attaching
         global api
         functionsPath = ntpath.split(os.path.realpath(__file__))[0] + "/ovirtFunctions.py"
         ovirtConnect = imp.load_source('ovirtConnect', functionsPath)
@@ -243,6 +278,8 @@ def main(argv):
             elif opt in ("-y", "--assume-yes"):
                 global assumeYes
                 assumeYes = True
+            elif opt in ("-w", "--no-activate"):
+                activate = False
             elif opt in ("-n", "--vm-name"):
                 vm_name = arg
             elif opt in ("-d", "--disk-name"):
@@ -255,9 +292,9 @@ def main(argv):
                 raise UsageException("Unknown argument:" + opt)
 
         if operation == 'attachdisk':
-            ret_code = attachDisk(vm_name, disk_name)
+            ret_code = attachDisk(vm_name, disk_name, activate)
         elif operation == 'detachdisk':
-            ret_code = detachDisk(vm_name, disk_name)
+            ret_code = detachDisk(vm_name, disk_name, activate)
         elif operation == 'createdisk':
             ret_code = createDisk(vm_name, disk_name, size)
         elif operation == 'deletedisk':
