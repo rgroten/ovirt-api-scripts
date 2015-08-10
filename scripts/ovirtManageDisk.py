@@ -78,7 +78,7 @@ def _deactivate(disk):
         raise
 
 
-def _attach(vm, disk):
+def _attach(vm, disk, activate):
     """
     Attach specified disk to VM
     Parameters:
@@ -89,9 +89,12 @@ def _attach(vm, disk):
     # Check if disk is already attached to the VM
     if vmDisk:
         print("Disk " + disk.get_alias() + " is already attached")
+        # Disk is already attached so lets activate it
+        if activate:
+            _activate(disk)
     else:
         print("Attaching " + disk.get_alias() + " to " + vm.get_name())
-        vmDisk = vm.disks.add(disk)
+        vmDisk = vm.disks.add(params.Disk(id = disk.id, active = activate))
     return vmDisk
 
 
@@ -119,10 +122,7 @@ def attachDisk(vm_name, disk_name, activate=True):
         if not disks:
             raise Exception("No disks with name " + disk_name + " found")
         for disk in disks.__iter__():
-            vmDisk = _attach(vm, disk)
-            # Activate disk if requested
-            if activate:
-                _activate(vmDisk)
+            vmDisk = _attach(vm, disk, activate)
     except Exception as e:
         print ("Error while attaching disk")
         raise
