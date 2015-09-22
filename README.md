@@ -13,16 +13,17 @@ Before running, you must create a ~/.ovirtparams file in your home directory whi
 ```
 Usage: ovirtManageDisk.py : <operation> <arguments>
    Operations:
-        attachdisk: Attach existing disk to a VM.  Requires -n -d
-        detachdisk: Detach existing disk from a VM. Requires -n -d
-        createdisk: Create a new disk and attach it to a VM. Requires -n -d -s
-        deletedisk: Deletes an existing disk (must be detached). Requires -d
-        createlun: Add a new direct lun disk and attach it to VM. Requires -n -d -l
+	attachdisk: Attach existing disk to a VM.  Requires -n -d
+	detachdisk: Detach existing disk from a VM. Requires -n -d
+	createdisk: Create a new disk and attach it to a VM. Requires -n -d -s
+	deletedisk: Deletes an existing disk (must be detached). Requires -d
+	createlun: Add a new direct lun disk and attach it to VM. Requires -n -d -l
    Arguments:
-        -n: Name of VM Guest
-        -d: Name of disk
-        -s: Size of disk in GB
-        -l: LUN id
+	-n: Name of VM Guest
+	-d: Name of disk
+	-s: Size of disk in GB
+	-l: LUN id
+	-w: no-activate/no-detach. When attaching disk, don't activate it. When deactivating, don't detach.
 ```
 #### Examples
 
