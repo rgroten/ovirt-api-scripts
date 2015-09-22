@@ -7,6 +7,8 @@ Tool for managing disks for oVirt/RHEV from the command line.
 Provides the ability to create, attach/detach, delete both internal (pool) disks and direct attach (lun) disks to VMs.
 Requires ovirtFunctions.py so keep them in the same directory
 
+Before running, you must create a ~/.ovirtparams file in your home directory which contains the connection information for your Manager instance.  A sample .ovirtparams file can be found in the repo.  You can add multiple connection sections to the file if connecting to multiple different Managers.
+
 #### Usage
 ```
 Usage: ovirtManageDisk.py : <operation> <arguments>
