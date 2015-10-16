@@ -33,7 +33,7 @@ class UsageException(Exception):
         print("	detachdisk: Detach existing disk from a VM. Requires -n -d")
         print("	createdisk: Create a new disk and attach it to a VM. Requires -n -d -s")
         print("	deletedisk: Deletes an existing disk (must be detached). Requires -d")
-        print("	createlun: Add a new direct lun disk and attach it to VM. Requires -n -d -l")
+        print("	createlun: Add a new direct lun disk and attach it to VM. Requires -d -l. Optional -n")
         print("   Arguments:")
         print("	-n: Name of VM Guest")
         print("	-d: Name of disk")
