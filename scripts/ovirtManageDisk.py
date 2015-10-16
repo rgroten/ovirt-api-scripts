@@ -181,7 +181,6 @@ def createLun(vm_name, disk_name, lun_id):
     """
     return_code = 0
     try:
-        vm = api.vms.get(name=vm_name)
 
         lu = params.LogicalUnit()
         lu.set_id(lun_id)
@@ -199,19 +198,24 @@ def createLun(vm_name, disk_name, lun_id):
         disk_params.set_alias(disk_name)
         disk_params.set_active(True)
         disk_params.set_lun_storage(storage_params)
-        disk = vm.disks.add(disk_params)
 
-        count = 10
-        while(not vm.disks.get(disk_name).get_active()):
-            if (count == 0):
-                print("Out of time, attempting to roll back")
-                detachDisk(vm_name, disk_name)
-                deleteDisk(disk_name)
-                raise Exception("Error adding lun, check lun_id and retry")
-            else:
-                time.sleep(1)
-            print(".")
-            count -= 1
+        if vm_name:
+            vm = api.vms.get(name=vm_name)
+            disk = vm.disks.add(disk_params)
+        else:
+            disk = api.disks.add(disk_params)
+
+        #count = 10
+        #while(not vm.disks.get(disk_name).get_active()):
+            #if (count == 0):
+                #print("Out of time, attempting to roll back")
+                #detachDisk(vm_name, disk_name)
+                #deleteDisk(disk_name)
+                #raise Exception("Error adding lun, check lun_id and retry")
+            #else:
+                #time.sleep(1)
+            #print(".")
+            #count -= 1
 
     except Exception as e:
         print("Error while adding new lun: " + str(e))
