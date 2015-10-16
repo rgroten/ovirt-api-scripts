@@ -205,18 +205,6 @@ def createLun(vm_name, disk_name, lun_id):
         else:
             disk = api.disks.add(disk_params)
 
-        #count = 10
-        #while(not vm.disks.get(disk_name).get_active()):
-            #if (count == 0):
-                #print("Out of time, attempting to roll back")
-                #detachDisk(vm_name, disk_name)
-                #deleteDisk(disk_name)
-                #raise Exception("Error adding lun, check lun_id and retry")
-            #else:
-                #time.sleep(1)
-            #print(".")
-            #count -= 1
-
     except Exception as e:
         print("Error while adding new lun: " + str(e))
         return_code = 1
@@ -278,7 +266,7 @@ def main(argv):
         api = ovirtConnect.ovirtConnect()
         for opt, arg in opts:
             if opt == '-h':
-                raise UsageException("blah")
+                raise UsageException("Print usage")
             elif opt in ("-y", "--assume-yes"):
                 global assumeYes
                 assumeYes = True
@@ -302,7 +290,7 @@ def main(argv):
         elif operation == 'createdisk':
             ret_code = createDisk(vm_name, disk_name, size)
         elif operation == 'deletedisk':
-            if vm_name is not None:
+            if vm_name:
                 ret_code = deleteDisk(disk_name, vm_name)
             else:
                 ret_code = deleteDisk(disk_name)
