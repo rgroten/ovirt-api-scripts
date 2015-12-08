@@ -220,6 +220,9 @@ def deleteDisk(disk_name, vm_name=None, assume_yes=False):
     before deleting.
     """
     # TODO: If vm_name is populated, detach disk before deleting, instead of raise exception
+    if vm_name:
+        detachDisk(vm_name, disk_name)
+
     return_code = 0
     try:
         disks = api.disks.list(alias=disk_name)
@@ -329,10 +332,7 @@ def main(argv):
                 raise Exception("Missing disk size or lunid")
 
         elif args.command == 'delete':
-            if args.vm:
-                deleteDisk(args.disk, args.vm, assume_yes=args.assumeyes)
-            else:
-                deleteDisk(args.disk, assume_yes=args.assumeyes)
+            deleteDisk(args.disk, args.vm, assume_yes=args.assumeyes)
         else:
             raise UsageException("Unknown operation: " + args.command)
 
