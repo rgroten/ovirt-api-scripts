@@ -12,12 +12,13 @@
 
 from ovirtsdk.api import API
 from ovirtsdk.xml import params
-import sys
+import argparse
 import getopt
-import time
-import os
 import imp
 import ntpath
+import os
+import sys
+import time
 
 
 class UsageException(Exception):
@@ -78,7 +79,7 @@ def _deactivate(disk):
         raise
 
 
-def _attach(vm, disk, activate):
+def _attach(vm, disk, noactivate):
     """
     Attach specified disk to VM
     Parameters:
@@ -90,11 +91,11 @@ def _attach(vm, disk, activate):
     if vmDisk:
         print("Disk " + disk.get_alias() + " is already attached")
         # Disk is already attached so lets activate it
-        if activate:
+        if not noactivate:
             _activate(vmDisk)
     else:
         print("Attaching " + disk.get_alias() + " to " + vm.get_name())
-        vmDisk = vm.disks.add(params.Disk(id = disk.id, active = activate))
+        vmDisk = vm.disks.add(params.Disk(id = disk.id, active = not noactivate))
     return vmDisk
 
 
@@ -109,7 +110,7 @@ def _detach(vm, disk):
     disk.delete(action=params.Action(detach=True))
 
 
-def attachDisk(vm_name, disk_name, activate=True):
+def attachDisk(vm_name, disk_name, noactivate=False):
     """
     Attach disk_name to vm_name then activate it by default
     Parameters:
@@ -122,13 +123,13 @@ def attachDisk(vm_name, disk_name, activate=True):
         if not disks:
             raise Exception("No disks with name " + disk_name + " found")
         for disk in disks.__iter__():
-            vmDisk = _attach(vm, disk, activate)
+            vmDisk = _attach(vm, disk, noactivate)
     except Exception as e:
         print ("Error while attaching disk")
         raise
 
 
-def detachDisk(vm_name, disk_name, detach=True):
+def detachDisk(vm_name, disk_name, nodetach=False):
     """
     Deactivate disk_name and by default detach it from vm_name
     """
@@ -139,7 +140,7 @@ def detachDisk(vm_name, disk_name, detach=True):
             raise Exception("No disks with name " + disk_name + " are attached to " + vm_name)
         for disk in disks.__iter__():
             _deactivate(disk)
-            if detach:
+            if not nodetach:
                 _detach(vm, disk)
     except Exception as e:
         print("Exception while detaching disk")
@@ -212,7 +213,7 @@ def createLun(vm_name, disk_name, lun_id):
     return return_code
 
 
-def deleteDisk(disk_name, vm_name=None):
+def deleteDisk(disk_name, vm_name=None, assume_yes=False):
     """
     Permanently delete disk_name from OVIRT. Expects disk to be detached 
     already. Unless -y is specified in command line, prompt user to confirm
@@ -228,7 +229,7 @@ def deleteDisk(disk_name, vm_name=None):
             if disk is None:
                 raise Exception("No such disk")
 
-            if assumeYes is False:
+            if not assume_yes:
                 print("Will destroy disk " + disk.alias + " with size " + str(disk.size) + ". Are you sure? (Y/[N])")
                 input = sys.stdin.readline().rstrip("\r\n")
             else:
@@ -247,60 +248,96 @@ def deleteDisk(disk_name, vm_name=None):
     return return_code
 
 
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description="""Create, attach, delete RHEV disks""")
+
+    subparsers = parser.add_subparsers()
+    subparsers.required = True
+    subparsers.dest = "command"
+
+    attach_parser = subparsers.add_parser('attach',
+            help="Attach existing disk to a VM.")
+    detach_parser = subparsers.add_parser('detach',
+            help="Detach existing disk from a VM.")
+    create_parser = subparsers.add_parser('create',
+            help="Create a new disk (or direct lun) and optionally attach it to a VM.")
+    delete_parser = subparsers.add_parser('delete',
+            help="Delete a disk or direct lun (must be detached from all VMs first).")
+
+    attach_parser.add_argument("-n", "--vm", help="(Required) VM Name")
+    attach_parser.add_argument("-d", "--disk", help="(Required) Disk Alias")
+    attach_parser.add_argument("-w", "--noactivate", action="store_true",
+            default=False,
+            help="Attach disk but don't activate it. By default disk is attached then activated.")
+
+    detach_parser.add_argument("-n", "--vm", help="(Required) VM Name")
+    detach_parser.add_argument("-d", "--disk", help="(Required) Disk Alias")
+    detach_parser.add_argument("-w", "--nodetach", action="store_true",
+            default=False,
+            help="Deactivate disk but don't detach it. By default disk is deactivated then detached.")
+
+    create_parser.add_argument("-n", "--vm", help="VM Name. If not provided disk will not attach")
+    create_parser.add_argument("-d", "--disk", help="(Required) Disk Alias")
+    create_group = create_parser.add_mutually_exclusive_group()
+    create_group.add_argument("-s", "--size", help="Pool Disk Size in GB")
+    create_group.add_argument("-l", "--lunid", help="WWID of direct lun to create")
+
+    delete_parser.add_argument("-n", "--vm",
+            help="VM Name. If provided disk will detach before deleteing")
+    delete_parser.add_argument("-d", "--disk", help="(Required) Disk Alias")
+    delete_parser.add_argument("-y", "--assumeyes", action="store_true", help="(Required) Disk Alias")
+            #elif opt in ("-w", "--no-activate"):
+#When attaching disk, don't activate it. When deactivating, d
+
+    try:
+        args = parser.parse_args()
+        return args
+    except IOError, error:
+        print error
+        sys.exit(1)
+
+
 def main(argv):
+    """Main Function"""
+
     try:
-        if len(argv) == 0:
-            raise UsageException("No arguments specified")
-        operation = argv.pop(0)
         ret_code = 0
-
-        opts, args = getopt.getopt(argv, "hwyn:d:s:l:")
-    except getopt.GetoptError as e:
-        raise UsageException(str(e))
-    try:
-        vm_name = None
-        activate = True # Default, activate disk when attaching
         global api
-        functionsPath = ntpath.split(os.path.realpath(__file__))[0] + "/ovirtFunctions.py"
-        ovirtConnect = imp.load_source('ovirtConnect', functionsPath)
-        api = ovirtConnect.ovirtConnect()
-        for opt, arg in opts:
-            if opt == '-h':
-                raise UsageException("Print usage")
-            elif opt in ("-y", "--assume-yes"):
-                global assumeYes
-                assumeYes = True
-            elif opt in ("-w", "--no-activate"):
-                activate = False
-            elif opt in ("-n", "--vm-name"):
-                vm_name = arg
-            elif opt in ("-d", "--disk-name"):
-                disk_name = arg
-            elif opt in ("-s", "--size"):
-                size = arg
-            elif opt in ("-l", "--lun-id"):
-                lun_id = arg
-            else:
-                raise UsageException("Unknown argument:" + opt)
+        functionsPath = ntpath.split(os.path.realpath(__file__))[0] + "/rhevFunctions.py"
+        rhevConnect = imp.load_source('rhevConnect', functionsPath)
+        api = rhevConnect.rhevConnect()
 
-        if operation == 'attachdisk':
-            ret_code = attachDisk(vm_name, disk_name, activate)
-        elif operation == 'detachdisk':
-            ret_code = detachDisk(vm_name, disk_name, activate)
-        elif operation == 'createdisk':
-            ret_code = createDisk(vm_name, disk_name, size)
-        elif operation == 'deletedisk':
-            if vm_name:
-                ret_code = deleteDisk(disk_name, vm_name)
+        args = parse_args()
+
+        if args.command == 'attach':
+            if not args.vm or not args.disk:
+                raise Exception("Missing vm or disk name")
+            attachDisk(args.vm, args.disk, args.noactivate)
+        elif args.command == 'detach':
+            if not args.vm or not args.disk:
+                raise Exception("Missing vm or disk name")
+            detachDisk(args.vm, args.disk, args.nodetach)
+        elif args.command == 'create':
+            if not args.vm or not args.disk:
+                raise Exception("Missing vm or disk name")
+            if args.size:
+                createDisk(args.vm, args.disk, args.size)
+            elif args.lunid:
+                createLun(args.vm, args.disk, args.lunid)
             else:
-                ret_code = deleteDisk(disk_name)
-        elif operation == 'createlun':
-            ret_code = createLun(vm_name, disk_name, lun_id)
+                raise Exception("Missing disk size or lunid")
+
+        elif args.command == 'delete':
+            if args.vm:
+                deleteDisk(args.disk, args.vm, assume_yes=args.assumeyes)
+            else:
+                deleteDisk(args.disk, assume_yes=args.assumeyes)
         else:
-            raise UsageException("Unknown operation: " + operation)
+            raise UsageException("Unknown operation: " + args.command)
 
     except Exception as e:
-        print("Exception: " + str(e))
+        print "Exception: " + str(e)
         ret_code = 1
     finally:
         if api is not None:
