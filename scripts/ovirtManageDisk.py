@@ -219,7 +219,6 @@ def deleteDisk(disk_name, vm_name=None, assume_yes=False):
     already. Unless -y is specified in command line, prompt user to confirm
     before deleting.
     """
-    # TODO: If vm_name is populated, detach disk before deleting, instead of raise exception
     if vm_name:
         detachDisk(vm_name, disk_name)
 
@@ -290,8 +289,6 @@ def parse_args():
             help="VM Name. If provided disk will detach before deleteing")
     delete_parser.add_argument("-d", "--disk", help="(Required) Disk Alias")
     delete_parser.add_argument("-y", "--assumeyes", action="store_true", help="(Required) Disk Alias")
-            #elif opt in ("-w", "--no-activate"):
-#When attaching disk, don't activate it. When deactivating, d
 
     try:
         args = parser.parse_args()
@@ -301,7 +298,7 @@ def parse_args():
         sys.exit(1)
 
 
-def main(argv):
+def main():
     """Main Function"""
 
     try:
@@ -340,12 +337,11 @@ def main(argv):
         print "Exception: " + str(e)
         ret_code = 1
     finally:
-        if api is not None:
+        if api:
             api.disconnect()
     #return_code = diskOperation( vm_name, disk_name, operation )
     sys.exit(ret_code)
 
 api = None
-assumeYes = False
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
