@@ -253,6 +253,7 @@ def deleteDisk(disk_name, vm_name=None, assume_yes=False):
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description="""Create, attach, delete RHEV disks""")
+    parser.add_argument("-r","--rhevm", help="Specify RHEV Manager to connect to")
 
     subparsers = parser.add_subparsers()
     subparsers.required = True
@@ -302,13 +303,13 @@ def main():
     """Main Function"""
 
     try:
+        args = parse_args()
+
         ret_code = 0
         global api
         functionsPath = ntpath.split(os.path.realpath(__file__))[0] + "/rhevFunctions.py"
         rhevConnect = imp.load_source('rhevConnect', functionsPath)
-        api = rhevConnect.rhevConnect()
-
-        args = parse_args()
+        api = rhevConnect.rhevConnect(args.rhevm)
 
         if args.command == 'attach':
             if not args.vm or not args.disk:
