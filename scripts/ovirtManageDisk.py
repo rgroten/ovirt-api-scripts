@@ -307,9 +307,9 @@ def main():
 
         ret_code = 0
         global api
-        functionsPath = ntpath.split(os.path.realpath(__file__))[0] + "/rhevFunctions.py"
-        rhevConnect = imp.load_source('rhevConnect', functionsPath)
-        api = rhevConnect.rhevConnect(args.rhevm)
+        functionsPath = ntpath.split(os.path.realpath(__file__))[0] + "/ovirtFunctions.py"
+        ovirtConnect = imp.load_source('ovirtConnect', functionsPath)
+        api = ovirtConnect.ovirtConnect(args.rhevm)
 
         if args.command == 'attach':
             if not args.vm or not args.disk:
