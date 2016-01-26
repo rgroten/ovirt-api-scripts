@@ -149,7 +149,6 @@ def detachDisk(vm_name, disk_name, nodetach=False):
 
 def createDisk(vm_name, disk_name, sizegb):
     """Create a new disk with specified name and size. Attach to vm_name"""
-    return_code = 0
     try:
         vm = api.vms.get(name=vm_name)
         disk = vm.disks.get(name=disk_name)
@@ -169,9 +168,7 @@ def createDisk(vm_name, disk_name, sizegb):
         #activate(disk)
     except Exception as e:
         print("Error while creating new disk: " + str(e))
-        return_code = 1
-
-    return return_code
+        raise
 
 
 def createLun(vm_name, disk_name, lun_id):
@@ -180,9 +177,7 @@ def createLun(vm_name, disk_name, lun_id):
     WARNING: Due to bug in RHEV3.4.0, direct luns created with this function
     will be missing all meta-information. To be fixed in 3.5.0 release
     """
-    return_code = 0
     try:
-
         lu = params.LogicalUnit()
         lu.set_id(lun_id)
 
@@ -208,9 +203,6 @@ def createLun(vm_name, disk_name, lun_id):
 
     except Exception as e:
         print("Error while adding new lun: " + str(e))
-        return_code = 1
-
-    return return_code
 
 
 def deleteDisk(disk_name, vm_name=None, assume_yes=False):
@@ -222,7 +214,6 @@ def deleteDisk(disk_name, vm_name=None, assume_yes=False):
     if vm_name:
         detachDisk(vm_name, disk_name)
 
-    return_code = 0
     try:
         disks = api.disks.list(alias=disk_name)
         if not disks:
@@ -245,9 +236,7 @@ def deleteDisk(disk_name, vm_name=None, assume_yes=False):
             print("Disk " + disk.alias + " deleted")
     except Exception as e:
         print("Error while deleting disk: " + str(e))
-        return_code = 1
-        
-    return return_code
+        raise
 
 
 def parse_args():
