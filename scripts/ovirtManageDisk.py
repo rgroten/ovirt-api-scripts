@@ -203,6 +203,7 @@ def createLun(vm_name, disk_name, lun_id):
 
     except Exception as e:
         print("Error while adding new lun: " + str(e))
+        raise
 
 
 def deleteDisk(disk_name, vm_name=None, assume_yes=False):
