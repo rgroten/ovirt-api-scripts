@@ -86,3 +86,15 @@ Detaching disk test_lun from rgtest
 Assuming Yes since -y used...
 Disk test_lun deleted
 ```
+
+### ovirtTestConn.py
+
+Simple python script connects to oVirt/RHEV Manager to check if it's available.  Can make it automatically restart the manager service or add in another action like notify admin team.
+
+### ovirt-backup-db.sh
+
+This script will backup your oVirt/RHEV Manager database and copy it to a standby host, then cleanup any old backups stored on the standby.  Run from cron.
+
+### ovirt-check-storage-pools.sh
+
+Script to alert users if a storage pool fills up beyond a certain threshold. Threshold percentage can be specified in ovirt-check-storage-pools.inf file.
