@@ -21,30 +21,6 @@ import sys
 import time
 
 
-class UsageException(Exception):
-    """UsageException thrown if invalid arguments provided, print usage"""
-
-    def __init__(self, message):
-        Exception.__init__(self, message)
-
-        print("Usage: " + os.path.basename(__file__) +
-                " : <operation> <arguments>")
-        print("   Operations:")
-        print("	attachdisk: Attach existing disk to a VM.  Requires -n -d")
-        print("	detachdisk: Detach existing disk from a VM. Requires -n -d")
-        print("	createdisk: Create a new disk and attach it to a VM. Requires -n -d -s")
-        print("	deletedisk: Deletes an existing disk (must be detached). Requires -d")
-        print("	createlun: Add a new direct lun disk and attach it to VM. Requires -d -l. Optional -n")
-        print("   Arguments:")
-        print("	-n: Name of VM Guest")
-        print("	-d: Name of disk")
-        print("	-s: Size of disk in GB")
-        print("	-l: LUN id")
-        print("	-w: no-activate/no-detach. When attaching disk, don't activate it. When deactivating, don't detach.")
-        print(message)
-        sys.exit(2)
-
-
 def _activate(disk):
     """
     Activate specified disk
@@ -318,11 +294,8 @@ def main():
                 createLun(args.vm, args.disk, args.lunid)
             else:
                 raise Exception("Missing disk size or lunid")
-
         elif args.command == 'delete':
             deleteDisk(args.disk, args.vm, assume_yes=args.assumeyes)
-        else:
-            raise UsageException("Unknown operation: " + args.command)
 
     except Exception as e:
         print "Exception: " + str(e)
