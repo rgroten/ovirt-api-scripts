@@ -93,7 +93,7 @@ Simple python script connects to oVirt/RHEV Manager to check if it's available. 
 
 ### ovirt-backup-db.sh
 
-This script will backup your oVirt/RHEV Manager database and copy it to a standby host, then cleanup any old backups stored on the standby.  Run from cron.
+This script will backup your oVirt/RHEV Manager database and copy it to a standby host, then cleanup any old backups stored on the standby.  Run from cron.  As of RHEV/oVirt 3.6 this script can be replaced with a built-in monitor on storage domains.
 
 ### ovirt-check-storage-pools.sh
 
